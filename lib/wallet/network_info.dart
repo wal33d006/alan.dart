@@ -1,3 +1,4 @@
+import 'package:alan/utils/environment.dart';
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -23,6 +24,8 @@ class NetworkInfo extends Equatable {
     return '$fullNodeHost:$lcdPort';
   }
 
+  final Environment env;
+
   /// Port of the gRPC endpoint used to query some chain data.
   @JsonKey(name: 'grpc_port', defaultValue: 9090)
   final int gRPCPort;
@@ -30,6 +33,7 @@ class NetworkInfo extends Equatable {
   NetworkInfo({
     required this.bech32Hrp,
     required this.fullNodeHost,
+    this.env = Environment.PROD,
     this.lcdPort = 1317,
     this.gRPCPort = 9090,
   });

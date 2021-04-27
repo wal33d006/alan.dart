@@ -27,9 +27,10 @@ class QueryHelper {
 
   /// Queries the chain at the given [url].
   Future<RequestResult<Map<String, dynamic>>> queryChain(
-    String url,
-  ) async {
-    final data = await _httpClient.get(Uri.parse(url));
+      String url,
+      ) async {
+    var mainUri = Uri.parse('http://$url');
+    final data = await _httpClient.get(mainUri);
     if (data.statusCode != 200) {
       return RequestResult(
         error: 'Call to $url returned status code ${data.statusCode}',

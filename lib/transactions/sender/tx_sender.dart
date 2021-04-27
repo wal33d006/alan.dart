@@ -1,5 +1,6 @@
 import 'package:alan/alan.dart';
 import 'package:alan/proto/cosmos/tx/v1beta1/export.dart' as tx;
+import 'package:alan/utils/environment.dart';
 import 'package:grpc/grpc.dart';
 
 /// Allows to easily send a [StdTx] using the data contained inside the
@@ -16,7 +17,21 @@ class TxSender {
 
   /// Builds a new [TxSender] from the given [NetworkInfo].
   factory TxSender.fromNetworkInfo(NetworkInfo info) {
-    final clientChannel = ClientChannel(info.fullNodeHost, port: info.gRPCPort);
+    ClientChannel clientChannel;
+    if (info.env == Environment.DEV) {
+      clientChannel = ClientChannel(
+        info.fullNodeHost,
+        port: info.gRPCPort,
+        options: ChannelOptions(
+          credentials: ChannelCredentials.insecure(),
+        ),
+      );
+    } else {
+      clientChannel = ClientChannel(
+        info.fullNodeHost,
+        port: info.gRPCPort,
+      );
+    }
     return TxSender.build(clientChannel);
   }
 
@@ -25,10 +40,10 @@ class TxSender {
   /// Returns the hash of the transaction once it has been send, or throws an
   /// exception if an error is risen during the sending.
   Future<TxResponse> broadcastTx(
-    Tx tx, {
-    TxConfig? config,
-    BroadcastMode mode = BroadcastMode.BROADCAST_MODE_SYNC,
-  }) async {
+      Tx tx, {
+        TxConfig? config,
+        BroadcastMode mode = BroadcastMode.BROADCAST_MODE_SYNC,
+      }) async {
     config ??= DefaultTxConfig.create();
     final encoder = config.txEncoder();
 
