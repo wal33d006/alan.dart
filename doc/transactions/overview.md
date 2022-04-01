@@ -40,62 +40,86 @@ To create and sign a transaction properly, you can use the `TxSigner` class, pro
 
 You can also provide an optional `TxConfig` that will be used to serialize and sign the transaction according to custom logics.
 
-:::note Example message  
+:::tip Example message  
 The following example uses the `bank.MsgSend` message, but remember that you can use any kind of message that you want. Please visit the [modules page](../modules/overview.md) to see all the messages included in Alan.dart, or the [custom chain page](../custom-chains/overview.md) to know how to generate custom ones.  
 :::
 
 ```dart
 import 'package:alan/alan.dart';
 
-// Build the network info that will be used to get the 
-// account data used to sign the transaction
-final networkInfo = NetworkInfo({
-  bech32Hrp = 'cosmos',
-  fullNodeHost = 'localhost',
-});
+void main() async {
+  // Build the network info that will be used to get the 
+  // account data used to sign the transaction
+  final networkInfo = NetworkInfo.fromSingleHost(
+    bech32Hrp: 'cosmos',
+    host: 'http://localhost',
+  );
 
-final wallet = Wallet.derive(mnemonic, networkInfo);
+  // Create a wallet - Make sure you use your mnemonic phrase here
+  final mnemonic = [
+    'roast', 'stomach', 'welcome', 'please', 'gauge', 'funny',
+    'coconut', 'baby', 'bird', 'announce', 'bind', 'jacket',
+    'title', 'vibrant', 'tomorrow', 'indoor', 'bitter', 'initial',
+    'ill', 'analyst', 'thought', 'strike', 'answer', 'cotton',
+  ];
+  final wallet = Wallet.derive(mnemonic, networkInfo);
 
-// Create your message
-final message = bank.MsgSend.create()
-  ..fromAddress = wallet.bech32Address
-  ..toAddress = 'cosmos1cx7mec8x567xh8f4x7490ndx7xey8lnr9du2qy';
-message.amount.add(
-  Coin.create()
-    ..denom = 'uatom'
-    ..amount = '100',
-);
+  // Create your message
+  final message = bank.MsgSend.create()
+    ..fromAddress = wallet.bech32Address
+    ..toAddress = 'cosmos1cx7mec8x567xh8f4x7490ndx7xey8lnr9du2qy';
+  message.amount.add(
+    Coin.create()
+      ..denom = 'uatom'
+      ..amount = '100',
+  );
 
-// Compose the transaction fees
-final fee = Fee();
-fee.gasLimit = 200000.toInt64();
-fee.amount.add(
-  Coin.create()
-    ..amount = '100'
-    ..denom = 'uatom',
-);
+  // Compose the transaction fees
+  final fee = Fee();
+  fee.gasLimit = 200000.toInt64();
+  fee.amount.add(
+    Coin.create()
+      ..amount = '100'
+      ..denom = 'uatom',
+  );
 
-// Build the signer
-final signer = TxSigner.fromNetworkInfo(networkInfo);
+  // Build the signer
+  final signer = TxSigner.fromNetworkInfo(networkInfo);
 
-// Create and sign the transaction
-final signedTx = signer.createAndSign(
-  wallet,
-  [message],
-  memo: 'Optional memo', // Optional
-  fee: fee,              // Optional (Default is 200000 gas and empty amount)
-);
+  // Create and sign the transaction
+  final signedTx = await signer.createAndSign(
+    wallet,
+    [message],
+    memo: 'Optional memo', // Optional
+    fee: fee,              // Optional (Default is 200000 gas and empty amount)
+  );
+}
 ```
+
+:::warning Host requirements  
+When creating a `NetworkInfo` you need to specify a `host` value. This must be the address of a full node that has the following requirements: 
+
+1. REST APIs enabled.  
+   These can be enabled by setting `enable = true` under the `[api]` section of the `app.toml` file.
+2. gRPC APIs enabled.  
+   These can be enabled by setting `enable = true` under the `[grpc]` section of the `app.toml` file.
+3. REST APIs and gRPC APIs ports opened to allow external connections.
+
+:::
 
 ## 3. Send the signed transaction
 Once you signed the transaction, you are now ready to send it to the chain. To do this you can use the `TxSender` helper class, giving it the signed transaction and a wallet. You can also specify the send mode that you would like to use.
 
 ```dart
-final sender = TxSender.fromNetworkInfo(networkInfo);
-final result = sender.broadcastTx(
-  signedTx,
-  mode: BroadcastMode.BROADCAST_MODE_ASYNC, // Optional (Default: BroadcastMode.BROADCAST_MODE_SYNC)
-);
+void main() async {
+  // [...] Transaction creation process
+  
+  final sender = TxSender.fromNetworkInfo(networkInfo);
+  final result = await sender.broadcastTx(
+    signedTx,
+    mode: BroadcastMode.BROADCAST_MODE_ASYNC, // Optional (Default: BroadcastMode.BROADCAST_MODE_SYNC)
+  );
+}
 ```
 
 ### Send modes

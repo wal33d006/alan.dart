@@ -1,12 +1,9 @@
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:alan/alan.dart';
 import 'package:alan/proto/cosmos/crypto/secp256k1/export.dart' as secp256;
-import 'package:alan/utils/environment.dart';
 import 'package:grpc/grpc.dart' as grpc;
 import 'package:http/http.dart' as http;
-import 'package:http/io_client.dart';
 import 'package:protobuf/protobuf.dart';
 
 /// Allows to create and sign a [Tx] object so that it can later
@@ -18,14 +15,14 @@ class TxSigner {
   TxSigner({
     required AuthQuerier authQuerier,
     required NodeQuerier nodeQuerier,
-  })   : _authQuerier = authQuerier,
+  })  : _authQuerier = authQuerier,
         _nodeQuerier = nodeQuerier;
 
   /// Builds a new [TxSigner] from a given gRPC client channel and HTTP client.
   factory TxSigner.build(
-      grpc.ClientChannel clientChannel,
-      http.Client httpClient,
-      ) {
+    grpc.ClientChannel clientChannel,
+    http.Client httpClient,
+  ) {
     return TxSigner(
       authQuerier: AuthQuerier.build(clientChannel),
       nodeQuerier: NodeQuerier.build(httpClient),
@@ -34,44 +31,29 @@ class TxSigner {
 
   /// Builds a new [TxSigner] from the given [NetworkInfo].
   factory TxSigner.fromNetworkInfo(NetworkInfo info) {
-    grpc.ClientChannel clientChannel;
-    if (info.env == Environment.DEV) {
-      clientChannel = grpc.ClientChannel(
-        info.fullNodeHost,
-        port: info.gRPCPort,
-        options: grpc.ChannelOptions(
-          credentials: grpc.ChannelCredentials.insecure(),
-        ),
-      );
-    } else {
-      clientChannel = grpc.ClientChannel(
-        info.fullNodeHost,
-        port: info.gRPCPort,
-      );
-    }
-    var ioClient = HttpClient()
-      ..badCertificateCallback =
-          (X509Certificate cert, String host, int port) => true;
-    final httpClient = IOClient(ioClient);
-    return TxSigner.build(clientChannel, httpClient);
+    final httpClient = http.Client();
+    return TxSigner.build(info.gRPCChannel, httpClient);
   }
 
   /// Creates a new [Tx] object containing the given [msgs] and signs it using
   /// the provided [wallet].
   /// Optional [TxConfig], memo, gas and fees can be supplied as well.
   Future<Tx> createAndSign(
-      Wallet wallet,
-      List<GeneratedMessage> msgs, {
-        TxConfig? config,
-        String? memo,
-        Fee? fee,
-      }) async {
+    Wallet wallet,
+    List<GeneratedMessage> msgs, {
+    TxConfig? config,
+    String? memo,
+    Fee? fee,
+  }) async {
     // Set the config to the default value if not given
     config ??= DefaultTxConfig.create();
     final signMode = config.defaultSignMode();
 
     // Set the default fees
     fee ??= Fee()..gasLimit = 200000.toInt64();
+    if (!fee.hasGasLimit()) {
+      throw Exception('Invalid fees: invalid gas amount specified');
+    }
 
     // Get the account data and node info from the network
     final account = await _authQuerier.getAccountData(wallet.bech32Address);
@@ -83,7 +65,7 @@ class TxSigner {
 
     // Get the node info data
     final nodeInfo = await _nodeQuerier.getNodeInfo(
-      wallet.networkInfo.lcdEndpoint,
+      wallet.networkInfo.restEndpoint,
     );
 
     // Get the public key from the account, or generate it if the
