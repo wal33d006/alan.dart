@@ -3,7 +3,7 @@ description: Pure Dart library to easily integrate with any Cosmos-based chain.
 version: 0.40.2+1
 homepage: https://github.com/alan-sdk/alan.dart
 environment:
-  sdk: ">=2.12.0 <3.0.0"
+  sdk: ">=2.16.1 <3.0.0"
 
 dependencies:
   analyzer: ^1.3.0
